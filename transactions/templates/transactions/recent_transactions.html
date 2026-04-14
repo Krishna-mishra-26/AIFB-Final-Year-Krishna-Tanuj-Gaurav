@@ -1,0 +1,8 @@
+<h3>Recent Transactions</h3>
+<ul>
+  {% for transaction in recent %}
+    <li>{{ transaction.description }} - ${{ transaction.amount }} ({{ transaction.category }})</li>
+  {% empty %}
+    <li>No recent transactions</li>
+  {% endfor %}
+</ul>

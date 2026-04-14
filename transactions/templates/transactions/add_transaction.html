@@ -1,0 +1,37 @@
+<form method="POST" id="transactionForm">
+    {% csrf_token %}
+    <label>Amount:</label>
+    <input type="number" name="amount" required><br>
+
+    <label>Description:</label>
+    <input type="text" name="description" id="description" required><br>
+
+    <label>Transaction Type:</label>
+    <select name="category_type">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+    </select><br>
+
+    <label>Date:</label>
+    <input type="date" name="date" required><br>
+
+    <label>Predicted Category:</label>
+    <input type="text" name="category" id="predictedCategory" readonly><br>
+
+    <button type="submit">Add Transaction</button>
+</form>
+
+<script>
+document.getElementById("description").addEventListener("blur", function() {
+    let description = this.value;
+    fetch("/categorize/", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+        body: "description=" + encodeURIComponent(description)
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("predictedCategory").value = data.predicted_category;
+    });
+});
+</script>

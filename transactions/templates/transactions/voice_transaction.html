@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Voice Transaction</title>
+
+</head>
+<body>
+    <h2>🎤 Voice-Based Expense Logging</h2>
+    
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit">🎙️ Start Speaking</button>
+    </form>
+    
+    <p>Example Commands:</p>
+    <ul>
+        <li>"I spent 500 on groceries"</li>
+        <li>"Paid 1200 for rent"</li>
+        <li>"Received 15000 salary"</li>
+    </ul>
+</body>
+</html>
