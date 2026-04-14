@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        /* Custom styles for the chart container */
+        #chartContainer {
+            height: 400px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-800">Transactions</h1>
+            <div class="flex gap-3">
+                <button id="voiceBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200">
+                    <i class="ri-mic-line"></i> Voice Input
+                </button>
+                <button id="addTransactionBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="ri-add-line"></i> Add Transaction
+                </button>
+                <button id="exportCsvBtn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i class="ri-download-line"></i> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Transaction Trends</h2>
+            <div id="chartContainer"></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Filters</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="date" id="filterDate" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select id="filterCategory" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Categories</option>
+                </select>
+                <input type="number" id="filterAmount" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Min Amount">
+                <input type="text" id="searchText" class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search Description">
+            </div>
+            <button onclick="fetchTransactions()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">
+                <i class="ri-filter-line"></i> Apply Filters
+            </button>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Transaction History</h2>
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="py-4 px-6 text-left text-gray-700 font-medium cursor-pointer hover:bg-gray-50" onclick="sortTransactions('date')">Date</th>
+                        <th class="py-4 px-6 text-left text-gray-700 font-medium cursor-pointer hover:bg-gray-50" onclick="sortTransactions('category')">Category</th>
+                        <th class="py-4 px-6 text-right text-gray-700 font-medium cursor-pointer hover:bg-gray-50" onclick="sortTransactions('amount')">Amount</th>
+                        <th class="py-4 px-6 text-left text-gray-700 font-medium">Currency</th>
+                        <th class="py-4 px-6 text-left text-gray-700 font-medium">Description</th>
+                        <th class="py-4 px-6 text-center text-gray-700 font-medium">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsList" class="divide-y">
+                    <!-- Transactions will be dynamically inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-between mt-6">
+            <button onclick="changePage(-1)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200">
+                <i class="ri-arrow-left-line"></i> Previous
+            </button>
+            <button onclick="changePage(1)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200">
+                Next <i class="ri-arrow-right-line"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div id="addTransactionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Add Transaction</h3>
+            <form id="transactionForm" class="space-y-4">
+                <input type="date" id="transactionDate" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <select id="transactionCategory" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required></select>
+                <input type="number" id="transactionAmount" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Amount" required>
+                <select id="transactionCurrency" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="INR">INR - Indian Rupee</option>
+                </select>
+                <textarea id="transactionDescription" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Description"></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="closeModal" class="px-4 py-2 border rounded-lg hover:bg-gray-100 transition duration-200">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Include Transaction JS -->
+    <script src="transaction.js"></script>
+</body>
+</html>

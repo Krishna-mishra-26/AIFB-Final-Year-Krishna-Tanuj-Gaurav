@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI Finance Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="min-h-screen bg-gradient">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4">
+        <div class="max-w-md w-full bg-white/90 login-card rounded-xl p-8">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">Welcome Back</h2>
+                <p class="mt-2 text-sm text-gray-600">Please sign in to your account</p>
+            </div>
+            <form method="post" action="{% url 'login_page' %}">
+                {% csrf_token %}
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" required class="input-field block w-full pl-3 py-3 border border-gray-200 rounded-button text-sm" placeholder="Enter your email">
+
+                <label class="block text-sm font-medium text-gray-700 mt-4">Password</label>
+                <input type="password" name="password" required class="input-field block w-full pl-3 py-3 border border-gray-200 rounded-button text-sm" placeholder="Enter your password">
+
+                <button type="submit" class="w-full mt-6 py-3 bg-purple-600 text-white rounded-lg font-medium">Sign in</button>
+            </form>
+
+            <p class="text-sm text-gray-600 mt-4">New user? <a href="{% url 'signup_page' %}" class="text-purple-600 hover:text-purple-500 font-medium">Create an account</a></p>
+        </div>
+    </div>
+</body>
+</html>

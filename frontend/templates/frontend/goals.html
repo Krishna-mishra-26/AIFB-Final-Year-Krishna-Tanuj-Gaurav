@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings Goals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Savings Goals</h1>
+                <p id="goalCount" class="text-gray-600 mt-1">Loading goals...</p>
+            </div>
+            <div class="relative">
+                <button onclick="toggleNotifications()" class="relative bg-primary text-white px-4 py-2 rounded-md">
+                    Notifications <span id="notifCount" class="absolute top-0 right-0 bg-red-500 text-xs text-white px-2 py-1 rounded-full hidden">0</span>
+                </button>
+                <div id="notifDropdown" class="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg hidden">
+                    <div id="notifList" class="p-4 text-sm text-gray-800"></div>
+                    <button onclick="markNotificationsRead()" class="w-full text-center py-2 text-primary border-t hover:bg-gray-100">Mark All Read</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- AI Insights Panel -->
+        <div id="aiInsights" class="bg-white rounded-lg p-6 shadow-sm mb-6 hidden">
+            <h2 class="text-lg font-semibold text-blue-600">💡 AI Insights</h2>
+            <div id="insightsList" class="space-y-3 mt-3"></div>
+        </div>
+
+        <!-- Monthly Savings Projection Chart -->
+        <div class="bg-white rounded-lg p-6 shadow-sm mt-6">
+            <h2 class="text-lg font-semibold text-gray-900">📊 Savings Projection</h2>
+            <div id="savingsChart" class="h-80"></div>
+        </div>
+
+        <!-- Monthly Savings History Chart -->
+        <div class="bg-white rounded-lg p-6 shadow-sm mt-6">
+            <h2 class="text-lg font-semibold text-gray-900">📊 Monthly Savings Tracker</h2>
+            <div id="savingsHistoryChart" class="h-80"></div>
+        </div>
+
+        <!-- Savings Goals List -->
+        <div id="goalsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <!-- Goals will be dynamically loaded here -->
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = "/api/insights/";
+
+        async function fetchGoals() {
+            try {
+                const res = await fetch(API_BASE_URL + "goal-progress/");
+                const goals = await res.json();
+
+                document.getElementById("goalCount").innerText = `You have ${goals.length} active goals`;
+                const container = document.getElementById("goalsContainer");
+
+                container.innerHTML = goals.map(goal => {
+                    const progress = (goal.saved_amount / goal.target_amount) * 100;
+                    return `
+                        <div class="bg-white rounded-lg p-6 shadow-sm">
+                            <h3 class="font-semibold text-gray-900">${goal.goal_name}</h3>
+                            <div class="mb-4">
+                                <div class="h-2 bg-gray-100 rounded-full">
+                                    <div class="h-2 bg-blue-500 rounded-full" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Saved</span>
+                                <span class="text-gray-900 font-medium">$${goal.saved_amount} of $${goal.target_amount}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            } catch (error) {
+                console.error("Error fetching goals:", error);
+            }
+        }
+
+        async function fetchSavingsProjection() {
+            try {
+                const res = await fetch(API_BASE_URL + "savings-projections/");
+                const data = await res.json();
+
+                const chart = echarts.init(document.getElementById('savingsChart'));
+                chart.setOption({
+                    xAxis: { type: 'category', data: data.months },
+                    yAxis: { type: 'value' },
+                    series: [{ name: 'Projected Savings', type: 'line', data: data.amounts }]
+                });
+            } catch (error) {
+                console.error("Error fetching savings projections:", error);
+            }
+        }
+
+        async function fetchSavingsHistory() {
+            try {
+                const res = await fetch(API_BASE_URL + "savings-history/");
+                const data = await res.json();
+
+                const months = data.map(entry => entry.month);
+                const savedData = data.map(entry => entry.total_saved);
+
+                const chart = echarts.init(document.getElementById('savingsHistoryChart'));
+                chart.setOption({
+                    xAxis: { type: 'category', data: months },
+                    yAxis: { type: 'value' },
+                    series: [{ name: 'Total Saved', type: 'line', data: savedData, smooth: true }]
+                });
+            } catch (error) {
+                console.error("Error fetching savings history:", error);
+            }
+        }
+
+        async function fetchNotifications() {
+            try {
+                const res = await fetch(API_BASE_URL + "notifications/");
+                const notifications = await res.json();
+                const notifCount = document.getElementById("notifCount");
+                const notifList = document.getElementById("notifList");
+
+                if (notifications.length > 0) {
+                    notifCount.innerText = notifications.length;
+                    notifCount.classList.remove("hidden");
+
+                    notifList.innerHTML = notifications.map(notif => `
+                        <div class="p-2 border-b">${notif.message}</div>
+                    `).join("");
+                } else {
+                    notifCount.classList.add("hidden");
+                    notifList.innerHTML = "<p class='p-2 text-center text-gray-500'>No new notifications</p>";
+                }
+            } catch (error) {
+                console.error("Error fetching notifications:", error);
+            }
+        }
+
+        async function markNotificationsRead() {
+            try {
+                await fetch(API_BASE_URL + "mark-notifications-read/", { method: "POST" });
+                document.getElementById("notifDropdown").classList.add("hidden");
+                fetchNotifications();
+            } catch (error) {
+                console.error("Error marking notifications as read:", error);
+            }
+        }
+
+        function toggleNotifications() {
+            document.getElementById("notifDropdown").classList.toggle("hidden");
+        }
+
+        fetchGoals();
+        fetchSavingsProjection();
+        fetchSavingsHistory();
+        fetchNotifications();
+    </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+{% extends "public/app_layout.html" %}
+
+{% block title %}Group Expenses | Finance Tracker{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-900">Your Groups</h2>
+        </div>
+
+        <form method="post" class="space-y-2 mb-5">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_group">
+            <input type="text" name="group_name" placeholder="Group name" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+            <textarea name="group_description" placeholder="Description" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="2"></textarea>
+            <button type="submit" class="w-full bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700">
+                <i class="fas fa-plus mr-1"></i>Create Group
+            </button>
+        </form>
+
+        <div id="groupList" class="space-y-3">
+            {% for group in groups %}
+                <a href="?group={{ group.id }}" class="block p-3 rounded-lg border {% if selected_group and selected_group.id == group.id %}bg-indigo-50 border-indigo-200{% else %}bg-white border-gray-200{% endif %}">
+                    <h3 class="font-medium {% if selected_group and selected_group.id == group.id %}text-indigo-900{% else %}text-gray-900{% endif %}">{{ group.name }}</h3>
+                    <p class="text-sm text-gray-600">{{ group.description|default:"No description" }}</p>
+                </a>
+            {% empty %}
+                <p class="text-sm text-gray-500">No groups found. Create your first group.</p>
+            {% endfor %}
+        </div>
+
+        {% if selected_group %}
+            <div class="mt-6">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Add Member By Email</h3>
+                <form method="post" class="flex gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_member">
+                    <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+                    <input type="email" name="member_email" placeholder="user@email.com" class="flex-1 border border-gray-300 rounded-lg px-3 py-2" required>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 rounded-lg hover:bg-indigo-700">Add</button>
+                </form>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="xl:col-span-2 space-y-6">
+        {% if selected_group %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h2 class="text-xl font-semibold text-gray-900">Settlement Summary</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
+                <div class="rounded-lg border border-gray-200 px-3 py-2">
+                    <p class="text-xs text-gray-500">You Paid</p>
+                    <p class="font-semibold text-gray-900">Rs {{ settlement.you_paid|floatformat:2 }}</p>
+                </div>
+                <div class="rounded-lg border border-red-100 bg-red-50 px-3 py-2">
+                    <p class="text-xs text-red-600">You Owe</p>
+                    <p class="font-semibold text-red-700">Rs {{ settlement.you_owe|floatformat:2 }}</p>
+                </div>
+                <div class="rounded-lg border border-green-100 bg-green-50 px-3 py-2">
+                    <p class="text-xs text-green-600">You Are Owed</p>
+                    <p class="font-semibold text-green-700">Rs {{ settlement.you_are_owed|floatformat:2 }}</p>
+                </div>
+                <div class="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2">
+                    <p class="text-xs text-indigo-600">Net Position</p>
+                    <p class="font-semibold {% if settlement.net < 0 %}text-red-700{% else %}text-indigo-700{% endif %}">Rs {{ settlement.net|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Expense Categories</h3>
+                        <p class="text-sm text-gray-500">How this group is spending money.</p>
+                    </div>
+                </div>
+                <div id="groupExpenseChart" class="h-72"></div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Settlement Snapshot</h3>
+                        <p class="text-sm text-gray-500">Visual summary of your current group position.</p>
+                    </div>
+                </div>
+                <div id="settlementChart" class="h-72"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h2 class="text-xl font-semibold text-gray-900">Add New Expense</h2>
+            {% if selected_group %}
+            <form method="post" class="mt-4 grid md:grid-cols-2 gap-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_expense">
+                <input type="hidden" name="group_id" value="{{ selected_group.id }}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date (DD-MM-YYYY)</label>
+                    <input name="date" type="date" class="border border-gray-300 rounded-lg px-3 py-2 w-full" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input name="description" type="text" placeholder="Description" class="border border-gray-300 rounded-lg px-3 py-2 w-full" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select name="category" class="border border-gray-300 rounded-lg px-3 py-2 w-full">
+                        <option>Food</option>
+                        <option>Utilities</option>
+                        <option>Transport</option>
+                        <option>Entertainment</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <input name="amount" type="number" step="0.01" min="0.01" placeholder="Amount" class="border border-gray-300 rounded-lg px-3 py-2 w-full" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Paid By</label>
+                    <input type="text" value="{{ request.user.username }}" class="border border-gray-300 rounded-lg px-3 py-2 w-full bg-gray-100" disabled>
+                </div>
+                <div class="border border-gray-300 rounded-lg px-3 py-2 max-h-32 overflow-auto md:col-span-2">
+                    <p class="text-sm text-gray-600 mb-2">Split between members</p>
+                    {% for member in group_members %}
+                        <label class="flex items-center gap-2 text-sm mb-1">
+                            <input type="checkbox" name="split_members" value="{{ member.id }}" checked>
+                            {{ member.user.username }} ({{ member.user.email }})
+                        </label>
+                    {% empty %}
+                        <p class="text-sm text-gray-500">No members in this group.</p>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="md:col-span-2 bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700">Save Expense</button>
+            </form>
+            {% else %}
+                <p class="text-sm text-gray-500 mt-3">Create or select a group to add expenses.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">Recent Group Expenses</h2>
+            {% if selected_group %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-gray-700 bg-gray-50">
+                            <tr>
+                                <th class="text-left px-3 py-2">Date</th>
+                                <th class="text-left px-3 py-2">Description</th>
+                                <th class="text-left px-3 py-2">Category</th>
+                                <th class="text-left px-3 py-2">Paid By</th>
+                                <th class="text-left px-3 py-2">Split Members</th>
+                                <th class="text-right px-3 py-2">Total</th>
+                                <th class="text-right px-3 py-2">Per Member</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in group_expenses %}
+                                <tr class="border-t border-gray-100">
+                                    <td class="px-3 py-2">{{ expense.date|date:'d-m-Y' }}</td>
+                                    <td class="px-3 py-2">{{ expense.description }}</td>
+                                    <td class="px-3 py-2">{{ expense.category }}</td>
+                                    <td class="px-3 py-2">{{ expense.paid_by.user.username }}</td>
+                                    <td class="px-3 py-2">
+                                        {% for member in expense.split_members.all %}
+                                            <span class="inline-block text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded mr-1 mb-1">{{ member.user.username }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td class="px-3 py-2 text-right">{{ expense.amount }}</td>
+                                    <td class="px-3 py-2 text-right">{{ expense.split_amount|floatformat:2 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7" class="px-3 py-6 text-center text-gray-500">No expenses recorded for this group yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-sm text-gray-500">No selected group yet.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        const categoryLabels = JSON.parse('{{ expense_category_labels_json|default:"[]"|escapejs }}');
+        const categoryValues = JSON.parse('{{ expense_category_values_json|default:"[]"|escapejs }}');
+        const settlementLabels = JSON.parse('{{ settlement_labels_json|default:"[]"|escapejs }}');
+        const settlementValues = JSON.parse('{{ settlement_values_json|default:"[]"|escapejs }}');
+
+        const categoryChartElement = document.getElementById('groupExpenseChart');
+        if (categoryChartElement) {
+            const chart = echarts.init(categoryChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    name: 'Expense categories',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    data: categoryLabels.map(function (label, index) {
+                        return { name: label, value: categoryValues[index] || 0 };
+                    })
+                }]
+            });
+            window.addEventListener('resize', function () { chart.resize(); });
+        }
+
+        const settlementChartElement = document.getElementById('settlementChart');
+        if (settlementChartElement) {
+            const chart = echarts.init(settlementChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: settlementLabels.length ? settlementLabels : ['No data'] },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: 'Rs',
+                    type: 'bar',
+                    data: settlementLabels.length ? settlementValues : [0],
+                    itemStyle: { color: '#6366f1' }
+                }]
+            });
+            window.addEventListener('resize', function () { chart.resize(); });
+        }
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,371 @@
+{% extends "public/app_layout.html" %}
+
+{% block title %}Transactions | Finance Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900">Filter Transactions</h2>
+                <p class="text-gray-500 text-sm">Search, date range, type, and category filters.</p>
+            </div>
+            <a href="/api/transactions/export-transactions-csv/" class="bg-gray-900 text-white rounded-lg px-4 py-2 text-sm">Export CSV</a>
+        </div>
+
+        <form method="get" class="grid md:grid-cols-5 gap-3 mt-4">
+            <input name="q" value="{{ filter_q }}" type="text" placeholder="Search description" class="border border-gray-300 rounded-lg px-3 py-2">
+            <select name="type" class="border border-gray-300 rounded-lg px-3 py-2">
+                <option value="">All Types</option>
+                <option value="income" {% if filter_type == 'income' %}selected{% endif %}>Income</option>
+                <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Expense</option>
+            </select>
+            <select name="category" class="border border-gray-300 rounded-lg px-3 py-2">
+                <option value="">All Categories</option>
+                {% for c in categories %}
+                    <option value="{{ c }}" {% if filter_category == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+            <input name="date_from" value="{{ filter_date_from }}" type="date" class="border border-gray-300 rounded-lg px-3 py-2">
+            <input name="date_to" value="{{ filter_date_to }}" type="date" class="border border-gray-300 rounded-lg px-3 py-2">
+            <div class="md:col-span-5 flex items-center gap-3">
+                <button type="submit" class="bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm">Apply Filters</button>
+                <a href="/transaction/" class="text-gray-600 text-sm">Reset</a>
+            </div>
+        </form>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+            <div class="rounded-lg border border-green-100 bg-green-50 px-4 py-3">
+                <p class="text-xs text-green-700">Filtered Income</p>
+                <p class="text-lg font-semibold text-green-700">Rs {{ filtered_income|floatformat:2 }}</p>
+            </div>
+            <div class="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+                <p class="text-xs text-red-700">Filtered Expense</p>
+                <p class="text-lg font-semibold text-red-700">Rs {{ filtered_expense|floatformat:2 }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-3">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Mic Entry</h3>
+                <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Enabled</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Use your microphone to fill the description quickly.</p>
+            <button id="voiceEntryBtn" type="button" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2">
+                <i class="ri-mic-line mr-1"></i>Start Voice Input
+            </button>
+            <p id="voiceStatus" class="mt-3 text-xs text-gray-500">Ready to listen.</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Receipt OCR</h3>
+                <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">Enabled</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Upload a receipt image and auto-fill description text.</p>
+            <input id="ocrImageInput" type="file" accept="image/*" class="mt-4 block w-full text-sm text-gray-700">
+            <button id="runOcrBtn" type="button" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2">Extract Text</button>
+            <p id="ocrStatus" class="mt-3 text-xs text-gray-500">Select an image to start OCR.</p>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">LLM Assistant</h3>
+                <span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">Enabled</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Generate smart suggestions from description text.</p>
+            <button id="suggestTransactionBtn" type="button" class="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-4 py-2">
+                Suggest Category & Type
+            </button>
+            <p id="llmStatus" class="mt-3 text-xs text-gray-500">Add description, then run assistant.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Income vs Expense Trend</h3>
+                    <p class="text-sm text-gray-500">Last 14 days of the current transaction view.</p>
+                </div>
+            </div>
+            <div id="transactionTrendChart" class="h-80"></div>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Expense Category Mix</h3>
+                    <p class="text-sm text-gray-500">Largest expense categories in the filtered result.</p>
+                </div>
+            </div>
+            <div id="transactionCategoryChart" class="h-80"></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-2xl font-semibold text-gray-900">Transactions</h2>
+        <p class="text-gray-500 mt-1">Add and review your recent entries.</p>
+
+        <form method="post" class="grid md:grid-cols-5 gap-3 mt-4">
+            {% csrf_token %}
+            <input name="date" type="date" value="{{ today|date:'Y-m-d' }}" required class="border border-gray-300 rounded-lg px-3 py-2">
+            <input name="category" type="text" placeholder="Category" required class="border border-gray-300 rounded-lg px-3 py-2">
+            <select name="category_type" class="border border-gray-300 rounded-lg px-3 py-2">
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+            </select>
+            <input name="amount" type="number" step="0.01" placeholder="Amount" required class="border border-gray-300 rounded-lg px-3 py-2">
+            <input name="description" type="text" placeholder="Description" class="border border-gray-300 rounded-lg px-3 py-2">
+            <div class="md:col-span-5">
+                <button type="submit" class="bg-indigo-600 text-white rounded-lg px-4 py-2">Save transaction</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-700">
+                <tr>
+                    <th class="text-left px-4 py-3">Date</th>
+                    <th class="text-left px-4 py-3">Category</th>
+                    <th class="text-left px-4 py-3">Type</th>
+                    <th class="text-left px-4 py-3">Description</th>
+                    <th class="text-right px-4 py-3">Amount</th>
+                    <th class="text-left px-4 py-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                    <tr class="border-t border-gray-100">
+                        <td class="px-4 py-3">{{ t.date }}</td>
+                        <td class="px-4 py-3">{{ t.category.name|default:'-' }}</td>
+                        <td class="px-4 py-3 capitalize">{{ t.category_type }}</td>
+                        <td class="px-4 py-3">{{ t.description|default:'-' }}</td>
+                        <td class="px-4 py-3 text-right {% if t.category_type|lower == 'expense' %}text-red-600{% else %}text-green-600{% endif %}">
+                            {{ t.amount }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <form method="post" onsubmit="return confirm('Delete this transaction?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="transaction_id" value="{{ t.id }}">
+                                <button type="submit" class="text-red-600 hover:text-red-700">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">No transactions yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+    (function () {
+        const trendLabels = JSON.parse('{{ transaction_trend_labels_json|default:"[]"|escapejs }}');
+        const trendIncome = JSON.parse('{{ transaction_trend_income_json|default:"[]"|escapejs }}');
+        const trendExpense = JSON.parse('{{ transaction_trend_expense_json|default:"[]"|escapejs }}');
+        const categoryLabels = JSON.parse('{{ transaction_category_labels_json|default:"[]"|escapejs }}');
+        const categoryValues = JSON.parse('{{ transaction_category_values_json|default:"[]"|escapejs }}');
+
+        const trendChartElement = document.getElementById('transactionTrendChart');
+        if (trendChartElement) {
+            const chart = echarts.init(trendChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['Income', 'Expense'] },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: trendLabels.length ? trendLabels : ['No data'] },
+                yAxis: { type: 'value' },
+                series: [
+                    {
+                        name: 'Income',
+                        type: 'line',
+                        smooth: true,
+                        data: trendLabels.length ? trendIncome : [0],
+                        itemStyle: { color: '#10b981' }
+                    },
+                    {
+                        name: 'Expense',
+                        type: 'line',
+                        smooth: true,
+                        data: trendLabels.length ? trendExpense : [0],
+                        itemStyle: { color: '#ef4444' }
+                    }
+                ]
+            });
+            window.addEventListener('resize', function () { chart.resize(); });
+        }
+
+        const categoryChartElement = document.getElementById('transactionCategoryChart');
+        if (categoryChartElement) {
+            const chart = echarts.init(categoryChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    name: 'Expense categories',
+                    type: 'pie',
+                    radius: ['42%', '72%'],
+                    data: categoryLabels.map(function (label, index) {
+                        return { name: label, value: categoryValues[index] || 0 };
+                    })
+                }]
+            });
+            window.addEventListener('resize', function () { chart.resize(); });
+        }
+
+        function getCookie(name) {
+            const value = '; ' + document.cookie;
+            const parts = value.split('; ' + name + '=');
+            if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+            }
+            return '';
+        }
+
+        async function getSuggestionFromServer(sourceText) {
+            const response = await fetch('/api/transactions/process-voice-entry/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ voice_text: sourceText })
+            });
+
+            if (!response.ok) {
+                throw new Error('Server suggestion failed with status ' + response.status);
+            }
+
+            return response.json();
+        }
+
+        const descriptionInput = document.querySelector('input[name="description"]');
+        const categoryInput = document.querySelector('input[name="category"]');
+        const typeInput = document.querySelector('select[name="category_type"]');
+        const amountInput = document.querySelector('input[name="amount"]');
+
+        const voiceBtn = document.getElementById('voiceEntryBtn');
+        const voiceStatus = document.getElementById('voiceStatus');
+        if (voiceBtn && voiceStatus) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                voiceBtn.disabled = true;
+                voiceBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                voiceStatus.textContent = 'Speech recognition is not supported in this browser.';
+            } else {
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                voiceBtn.addEventListener('click', function () {
+                    voiceStatus.textContent = 'Listening... Please speak now.';
+                    recognition.start();
+                });
+
+                recognition.onresult = function (event) {
+                    const transcript = event.results[0][0].transcript || '';
+                    if (descriptionInput) {
+                        descriptionInput.value = transcript;
+                    }
+
+                    voiceStatus.textContent = 'Voice captured. Getting AI suggestion...';
+                    getSuggestionFromServer(transcript)
+                        .then(function (suggestion) {
+                            if (categoryInput && suggestion.category) {
+                                categoryInput.value = suggestion.category;
+                            }
+                            if (typeInput && suggestion.transaction_type) {
+                                typeInput.value = suggestion.transaction_type;
+                            }
+                            if (amountInput && suggestion.amount && Number(suggestion.amount) > 0) {
+                                amountInput.value = Number(suggestion.amount).toFixed(2);
+                            }
+                            voiceStatus.textContent = 'Voice text applied with AI suggestion.';
+                        })
+                        .catch(function () {
+                            voiceStatus.textContent = 'Voice captured. Could not reach AI parser.';
+                        });
+                };
+
+                recognition.onerror = function (event) {
+                    voiceStatus.textContent = 'Mic error: ' + event.error;
+                };
+            }
+        }
+
+        const ocrInput = document.getElementById('ocrImageInput');
+        const runOcrBtn = document.getElementById('runOcrBtn');
+        const ocrStatus = document.getElementById('ocrStatus');
+        if (ocrInput && runOcrBtn && ocrStatus) {
+            runOcrBtn.addEventListener('click', async function () {
+                const file = ocrInput.files && ocrInput.files[0];
+                if (!file) {
+                    ocrStatus.textContent = 'Please select an image first.';
+                    return;
+                }
+
+                try {
+                    ocrStatus.textContent = 'Running OCR... this can take a few seconds.';
+                    const result = await Tesseract.recognize(file, 'eng');
+                    const text = (result && result.data && result.data.text ? result.data.text : '').trim();
+
+                    if (descriptionInput && text) {
+                        descriptionInput.value = text.slice(0, 255);
+                    }
+
+                    ocrStatus.textContent = text
+                        ? 'OCR completed. Description field updated.'
+                        : 'OCR completed but no readable text was found.';
+                } catch (error) {
+                    ocrStatus.textContent = 'OCR failed. Try a clearer receipt image.';
+                }
+            });
+        }
+
+        const suggestBtn = document.getElementById('suggestTransactionBtn');
+        const llmStatus = document.getElementById('llmStatus');
+
+        if (suggestBtn && llmStatus) {
+            suggestBtn.addEventListener('click', async function () {
+                const sourceText = descriptionInput ? descriptionInput.value : '';
+                if (!sourceText || !sourceText.trim()) {
+                    llmStatus.textContent = 'Please enter or capture description text first.';
+                    return;
+                }
+
+                try {
+                    llmStatus.textContent = 'Generating AI suggestion...';
+                    const suggestion = await getSuggestionFromServer(sourceText);
+                    if (categoryInput && suggestion.category) {
+                        categoryInput.value = suggestion.category;
+                    }
+                    if (typeInput && suggestion.transaction_type) {
+                        typeInput.value = suggestion.transaction_type;
+                    }
+                    if (amountInput && suggestion.amount && Number(suggestion.amount) > 0 && !amountInput.value) {
+                        amountInput.value = Number(suggestion.amount).toFixed(2);
+                    }
+                    llmStatus.textContent = 'Suggestion applied: ' + (suggestion.category || 'General') + ' (' + (suggestion.transaction_type || 'expense') + ').';
+                } catch (error) {
+                    llmStatus.textContent = 'Failed to get AI suggestion. Please try again.';
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}

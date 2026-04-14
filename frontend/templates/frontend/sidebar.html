@@ -1,0 +1,43 @@
+<aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div class="p-6">
+        <h1 class="text-2xl font-semibold text-gray-900">WealthWizard</h1>
+    </div>
+    <nav class="flex-1 px-4 space-y-1">
+        <a href="{% url 'dashboard_page' %}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg bg-primary bg-opacity-10 text-primary">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+                <i class="ri-dashboard-line"></i>
+            </div>
+            Dashboard
+        </a>
+        <a href="{% url 'transactions_page' %}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+                <i class="ri-exchange-box-line"></i>
+            </div>
+            Transactions
+        </a>
+        <a href="{% url 'budget_page' %}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+                <i class="ri-pie-chart-line"></i>
+            </div>
+            Budget
+        </a>
+        <a href="{% url 'goals_page' %}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+                <i class="ri-flag-line"></i>
+            </div>
+            Saving Goals
+        </a>
+        <a href="{% url 'recurring_page' %}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+                <i class="ri-repeat-line"></i>
+            </div>
+            Recurring Payments
+        </a>
+        <a href="{% url 'group_expenses_page' %}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="w-5 h-5 flex items-center justify-center mr-3">
+                <i class="ri-group-line"></i>
+            </div>
+            Group Expenses
+        </a>
+    </nav>
+</aside>

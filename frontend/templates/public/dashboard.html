@@ -1,0 +1,443 @@
+{% extends "public/app_layout.html" %}
+
+{% block title %}Dashboard | Finance Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-900 p-8 shadow-lg border border-slate-200">
+        <div class="absolute inset-0 opacity-60" style="background-image: radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 26%), radial-gradient(circle at bottom right, rgba(16,185,129,0.12), transparent 24%);"></div>
+        <div class="relative grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+            <div class="lg:col-span-2">
+                <p class="text-indigo-700 text-sm uppercase tracking-[0.3em]">Executive Finance Overview</p>
+                <h2 class="mt-3 text-4xl font-semibold tracking-tight">Your financial cockpit for the month</h2>
+                <p class="mt-3 max-w-2xl text-slate-600">A single place to monitor cash flow, budgets, goals, recurring obligations, and real-time alerts.</p>
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <a href="/transaction/" class="rounded-full bg-indigo-600 text-white px-5 py-3 font-medium hover:bg-indigo-700 shadow-sm">Add Transaction</a>
+                    <a href="/budget/" class="rounded-full border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-slate-100">Manage Budgets</a>
+                    <a href="/notifications/" class="rounded-full border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-slate-100">View Alerts</a>
+                </div>
+            </div>
+
+            <div class="rounded-2xl bg-white/90 backdrop-blur border border-slate-200 p-5 shadow-sm">
+                <p class="text-sm text-slate-500">Net Position</p>
+                <div class="mt-2 flex items-end justify-between gap-3">
+                    <p class="text-4xl font-semibold {% if total_balance < 0 %}text-red-600{% else %}text-emerald-700{% endif %}">Rs {{ total_balance|floatformat:2 }}</p>
+                    <span class="rounded-full px-3 py-1 text-xs {% if monthly_savings < 0 %}bg-red-100 text-red-700{% else %}bg-emerald-100 text-emerald-700{% endif %}">
+                        This month: Rs {{ monthly_savings|floatformat:2 }}
+                    </span>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div class="rounded-xl bg-slate-50 p-3 border border-slate-200">
+                        <p class="text-slate-500">Budgets</p>
+                        <p class="mt-1 font-semibold">{{ active_budgets }}</p>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 p-3 border border-slate-200">
+                        <p class="text-slate-500">Recurring Due</p>
+                        <p class="mt-1 font-semibold">{{ upcoming_recurring_count }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <p class="text-gray-500 text-sm">Total Balance</p>
+                <span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">All time</span>
+            </div>
+            <p class="text-3xl font-semibold mt-3 {% if total_balance < 0 %}text-red-600{% else %}text-slate-900{% endif %}">Rs {{ total_balance|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+            <p class="text-gray-500 text-sm">Monthly Income</p>
+            <p class="text-3xl font-semibold mt-3 text-emerald-600">Rs {{ monthly_income|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+            <p class="text-gray-500 text-sm">Monthly Expenses</p>
+            <p class="text-3xl font-semibold mt-3 text-rose-600">Rs {{ monthly_expenses|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+            <p class="text-gray-500 text-sm">Savings</p>
+            <p class="text-3xl font-semibold mt-3 text-indigo-600">Rs {{ saved_total|floatformat:2 }}</p>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100 xl:col-span-2">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <p class="text-sm uppercase tracking-[0.25em] text-indigo-600">AI for Finance & Banking</p>
+                    <h3 class="text-2xl font-semibold text-slate-900 mt-2">AI Banking Insights</h3>
+                    <p class="text-sm text-gray-500 mt-1">A risk score and forecast based on your live transaction behavior.</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 px-4 py-3 border border-slate-200 text-right">
+                    <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Risk Score</p>
+                    <p class="text-3xl font-semibold text-slate-900">{{ ai_risk_score }}/100</p>
+                    <p class="text-sm {% if ai_risk_score >= 75 %}text-rose-600{% elif ai_risk_score >= 45 %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ ai_risk_label }}</p>
+                </div>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="rounded-2xl border border-gray-100 bg-slate-50 p-4">
+                    <p class="text-sm font-medium text-slate-700">Forecast</p>
+                    <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div class="rounded-xl bg-white p-3 border border-gray-200">
+                            <p class="text-gray-500">Estimated income</p>
+                            <p class="mt-1 font-semibold text-emerald-600">Rs {{ projected_income|floatformat:2 }}</p>
+                        </div>
+                        <div class="rounded-xl bg-white p-3 border border-gray-200">
+                            <p class="text-gray-500">Estimated expenses</p>
+                            <p class="mt-1 font-semibold text-rose-600">Rs {{ projected_expenses|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 rounded-xl bg-white p-3 border border-gray-200">
+                        <p class="text-gray-500 text-sm">Expected month-end balance</p>
+                        <p class="mt-1 text-2xl font-semibold {% if projected_balance < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">Rs {{ projected_balance|floatformat:2 }}</p>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-gray-100 bg-slate-50 p-4">
+                    <p class="text-sm font-medium text-slate-700">Insight Summary</p>
+                    <ul class="mt-3 space-y-3 text-sm text-slate-700">
+                        {% for insight in ai_insights %}
+                            <li class="flex gap-2">
+                                <span class="mt-1 text-indigo-500">•</span>
+                                <span>{{ insight }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-semibold text-slate-900">AI Risk Gauge</h3>
+                    <p class="text-sm text-gray-500 mt-1">Higher means more spending pressure.</p>
+                </div>
+            </div>
+            <div id="aiRiskChart" class="mt-5 h-72"></div>
+            <div class="mt-4 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700">
+                The model combines recent spending spikes, budget usage, and forecast balance to estimate risk.
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="xl:col-span-2 rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <h3 class="text-2xl font-semibold text-slate-900">Cash Flow Trend</h3>
+                    <p class="text-sm text-gray-500 mt-1">Daily income and expense movement over the last 30 days.</p>
+                </div>
+                <div class="flex gap-2 text-xs">
+                    <span class="rounded-full bg-emerald-50 text-emerald-700 px-3 py-1">Income</span>
+                    <span class="rounded-full bg-rose-50 text-rose-700 px-3 py-1">Expenses</span>
+                </div>
+            </div>
+            <div id="cashFlowChart" class="mt-5 h-80"></div>
+        </div>
+
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <h3 class="text-2xl font-semibold text-slate-900">Financial Health</h3>
+            <p class="text-sm text-gray-500 mt-1">A quick read on your money behavior.</p>
+            <div class="mt-6 space-y-5">
+                <div>
+                    <div class="flex justify-between text-sm mb-2"><span>Savings ratio</span><span class="font-medium text-emerald-600">{{ savings_label }}</span></div>
+                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-emerald-500 rounded-full" data-bar-width="{{ savings_ratio_percent }}"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-sm mb-2"><span>Expense pressure</span><span class="font-medium text-amber-600">{{ pressure_label }}</span></div>
+                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-amber-500 rounded-full" data-bar-width="{{ expense_pressure_percent }}"></div></div>
+                </div>
+                <div class="rounded-2xl bg-slate-50 p-4">
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Priority actions</p>
+                    <ul class="mt-3 space-y-2 text-sm text-slate-700">
+                        {% for item in action_items %}
+                            <li class="flex gap-2"><span class="text-indigo-500">•</span><span>{{ item }}</span></li>
+                        {% empty %}
+                            <li class="text-gray-500">No urgent actions right now.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-semibold text-slate-900">Expense Mix</h3>
+                    <p class="text-sm text-gray-500 mt-1">Top spending categories this month.</p>
+                </div>
+            </div>
+            <div id="expenseMixChart" class="mt-5 h-80"></div>
+        </div>
+
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100 xl:col-span-2">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <h3 class="text-2xl font-semibold text-slate-900">Budget Burn-Down</h3>
+                    <p class="text-sm text-gray-500 mt-1">Category limits vs actual spend.</p>
+                </div>
+                <a href="/budget/" class="text-sm text-indigo-600 hover:text-indigo-700">Open budget manager</a>
+            </div>
+            <div class="mt-5 grid gap-4">
+                {% for budget in budget_cards %}
+                    <div class="rounded-2xl border border-gray-100 p-4 bg-gradient-to-r from-white to-slate-50">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="font-semibold text-slate-900">{{ budget.category }}</p>
+                                <p class="text-xs text-gray-500">Spent Rs {{ budget.spent|floatformat:2 }} of Rs {{ budget.monthly_limit|floatformat:2 }}</p>
+                            </div>
+                            <p class="font-semibold text-slate-700">Rs {{ budget.remaining|floatformat:2 }}</p>
+                        </div>
+                        <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-2 bg-gray-500 rounded-full" data-bar-width="{{ budget.percent_used }}"></div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="rounded-2xl border border-dashed border-gray-200 p-6 text-gray-500">No budgets yet. Create budgets to unlock burn-down tracking.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold text-slate-900">Goals Progress</h3>
+                <a href="/goals/" class="text-sm text-indigo-600 hover:text-indigo-700">Manage</a>
+            </div>
+            <div class="mt-5 space-y-4">
+                {% for goal in goal_cards %}
+                    <div>
+                        <div class="flex items-center justify-between text-sm mb-2">
+                            <span class="font-medium text-slate-800">{{ goal.goal_name }}</span>
+                            <span class="text-gray-500">{{ goal.progress_percent }}%</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-2 bg-gray-500 rounded-full" data-bar-width="{{ goal.progress_percent }}"></div>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">{{ goal.saved_amount|floatformat:2 }} / {{ goal.target_amount|floatformat:2 }} • Due {{ goal.deadline|date:'d-m-Y' }}</p>
+                    </div>
+                {% empty %}
+                    <div class="rounded-2xl border border-dashed border-gray-200 p-6 text-gray-500">No goals yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold text-slate-900">Recurring Due</h3>
+                <a href="/recurring/" class="text-sm text-indigo-600 hover:text-indigo-700">Manage</a>
+            </div>
+            <div class="mt-5 space-y-4">
+                {% for payment in recurring_cards %}
+                    <div class="rounded-2xl border border-gray-100 p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-slate-900">{{ payment.name }}</p>
+                                <p class="text-xs text-gray-500">Due {{ payment.next_payment_date|date:'d-m-Y' }}</p>
+                            </div>
+                            <p class="font-semibold text-slate-900">Rs {{ payment.amount }}</p>
+                        </div>
+                        <p class="mt-2 text-xs {% if payment.days_left < 0 %}text-rose-600{% elif payment.days_left == 0 %}text-amber-700{% else %}text-gray-500{% endif %}">
+                            {% if payment.days_left < 0 %}
+                                Overdue by {{ payment.days_left|add:'-1' }} day(s)
+                            {% elif payment.days_left == 0 %}
+                                Due today
+                            {% else %}
+                                Due in {{ payment.days_left }} day(s)
+                            {% endif %}
+                        </p>
+                    </div>
+                {% empty %}
+                    <div class="rounded-2xl border border-dashed border-gray-200 p-6 text-gray-500">No active recurring commitments.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold text-slate-900">Alerts</h3>
+                <a href="/notifications/" class="text-sm text-indigo-600 hover:text-indigo-700">Open center</a>
+            </div>
+            <div class="mt-5 space-y-3">
+                {% for alert in latest_alerts %}
+                    <div class="rounded-2xl border border-gray-100 p-4 {% if not alert.is_read %}bg-indigo-50{% endif %}">
+                        <p class="text-sm text-slate-800">{{ alert.message }}</p>
+                        <p class="mt-1 text-xs text-gray-500">{{ alert.created_at|date:'d-m-Y H:i' }}</p>
+                    </div>
+                {% empty %}
+                    <div class="rounded-2xl border border-dashed border-gray-200 p-6 text-gray-500">No alerts yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <h3 class="text-2xl font-semibold text-slate-900">Recent Transactions</h3>
+            <div class="mt-4 space-y-3">
+                {% for t in recent_transactions %}
+                    <div class="flex items-center justify-between rounded-2xl border border-gray-100 px-4 py-3 hover:border-gray-200 transition-colors">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ t.category.name|default:'General' }}</p>
+                            <p class="text-xs text-gray-500">{{ t.date|date:'d-m-Y' }} • {{ t.description|default:'No description' }}</p>
+                        </div>
+                        <p class="font-semibold {% if t.category_type == 'expense' %}text-rose-600{% else %}text-emerald-600{% endif %}">Rs {{ t.amount }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-sm text-gray-500">No transactions yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="rounded-3xl bg-white p-6 shadow-sm border border-gray-100">
+            <h3 class="text-2xl font-semibold text-slate-900">Quick Access</h3>
+            <p class="text-sm text-gray-500 mt-1">Jump straight into the modules that matter.</p>
+            <div class="grid sm:grid-cols-2 gap-3 mt-5">
+                <a href="/transaction/" class="rounded-2xl border border-gray-200 px-4 py-4 hover:bg-gray-50 transition-colors">
+                    <p class="font-medium text-slate-900">Transactions</p>
+                    <p class="text-xs text-gray-500 mt-1">Capture, scan, or voice-log spending.</p>
+                </a>
+                <a href="/budget/" class="rounded-2xl border border-gray-200 px-4 py-4 hover:bg-gray-50 transition-colors">
+                    <p class="font-medium text-slate-900">Budget</p>
+                    <p class="text-xs text-gray-500 mt-1">Manage category limits and burn rate.</p>
+                </a>
+                <a href="/goals/" class="rounded-2xl border border-gray-200 px-4 py-4 hover:bg-gray-50 transition-colors">
+                    <p class="font-medium text-slate-900">Savings Goals</p>
+                    <p class="text-xs text-gray-500 mt-1">Track progress toward milestones.</p>
+                </a>
+                <a href="/group-expenses/" class="rounded-2xl border border-gray-200 px-4 py-4 hover:bg-gray-50 transition-colors">
+                    <p class="font-medium text-slate-900">Group Expenses</p>
+                    <p class="text-xs text-gray-500 mt-1">Split bills and settle balances.</p>
+                </a>
+                <a href="/recurring/" class="rounded-2xl border border-gray-200 px-4 py-4 hover:bg-gray-50 transition-colors">
+                    <p class="font-medium text-slate-900">Recurring</p>
+                    <p class="text-xs text-gray-500 mt-1">Handle scheduled payments.</p>
+                </a>
+                <a href="/notifications/" class="rounded-2xl border border-gray-200 px-4 py-4 hover:bg-gray-50 transition-colors">
+                    <p class="font-medium text-slate-900">Notifications</p>
+                    <p class="text-xs text-gray-500 mt-1">Review alerts and due items.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {{ trend_labels_data|json_script:"trend-labels-data" }}
+    {{ trend_income_data|json_script:"trend-income-data" }}
+    {{ trend_expense_data|json_script:"trend-expense-data" }}
+    {{ category_labels_data|json_script:"category-labels-data" }}
+    {{ category_values_data|json_script:"category-values-data" }}
+    {{ ai_risk_score|json_script:"ai-risk-score-data" }}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        const cashFlowChart = echarts.init(document.getElementById('cashFlowChart'));
+        const expenseMixChart = echarts.init(document.getElementById('expenseMixChart'));
+        const aiRiskChartElement = document.getElementById('aiRiskChart');
+
+        const trendLabels = JSON.parse(document.getElementById('trend-labels-data').textContent);
+        const trendIncome = JSON.parse(document.getElementById('trend-income-data').textContent);
+        const trendExpense = JSON.parse(document.getElementById('trend-expense-data').textContent);
+        const categoryLabels = JSON.parse(document.getElementById('category-labels-data').textContent);
+        const categoryValues = JSON.parse(document.getElementById('category-values-data').textContent);
+        const aiRiskScore = JSON.parse(document.getElementById('ai-risk-score-data').textContent);
+
+        cashFlowChart.setOption({
+            grid: { left: 72, right: 24, top: 56, bottom: 48, containLabel: true },
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: '#ffffff',
+                borderColor: '#e2e8f0',
+                borderWidth: 1,
+                textStyle: { color: '#0f172a' }
+            },
+            legend: {
+                data: ['Income', 'Expenses'],
+                top: 4,
+                left: 0,
+                textStyle: { color: '#334155' }
+            },
+            xAxis: {
+                type: 'category',
+                data: trendLabels,
+                boundaryGap: false,
+                axisTick: { alignWithLabel: true },
+                axisLine: { lineStyle: { color: '#cbd5e1' } },
+                axisLabel: { color: '#64748b', margin: 14 }
+            },
+            yAxis: {
+                type: 'value',
+                axisLine: { show: false },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { color: '#e2e8f0' } },
+                axisLabel: { color: '#64748b', margin: 18 }
+            },
+            series: [
+                { name: 'Income', type: 'line', data: trendIncome, smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#10b981' }, areaStyle: { color: 'rgba(16,185,129,0.12)' } },
+                { name: 'Expenses', type: 'line', data: trendExpense, smooth: true, symbol: 'none', lineStyle: { width: 3, color: '#f43f5e' }, areaStyle: { color: 'rgba(244,63,94,0.12)' } }
+            ]
+        });
+
+        expenseMixChart.setOption({
+            tooltip: { trigger: 'item' },
+            legend: { bottom: 0 },
+            series: [{
+                type: 'pie',
+                radius: ['45%', '75%'],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                label: { show: false },
+                data: categoryLabels.map(function (label, index) {
+                    return { name: label, value: categoryValues[index] };
+                })
+            }]
+        });
+
+        if (aiRiskChartElement) {
+            const aiRiskChart = echarts.init(aiRiskChartElement);
+            aiRiskChart.setOption({
+                series: [{
+                    type: 'gauge',
+                    startAngle: 220,
+                    endAngle: -40,
+                    progress: { show: true, width: 18 },
+                    axisLine: { lineStyle: { width: 18, color: [[0.4, '#10b981'], [0.75, '#f59e0b'], [1, '#ef4444']] } },
+                    pointer: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { show: false },
+                    axisLabel: { show: false },
+                    detail: { valueAnimation: true, formatter: '{value}', fontSize: 30, offsetCenter: [0, '60%'] },
+                    data: [{ value: aiRiskScore, name: 'Risk Score' }]
+                }]
+            });
+            window.addEventListener('resize', function () {
+                aiRiskChart.resize();
+            });
+        }
+
+        window.addEventListener('resize', function () {
+            cashFlowChart.resize();
+            expenseMixChart.resize();
+        });
+
+        document.querySelectorAll('[data-bar-width]').forEach(function (element) {
+            const width = Number(element.getAttribute('data-bar-width') || 0);
+            element.style.width = Math.max(0, Math.min(100, width)) + '%';
+        });
+    })();
+</script>
+{% endblock %}

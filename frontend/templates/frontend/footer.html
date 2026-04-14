@@ -1,0 +1,63 @@
+<footer class="bg-gray-900 text-white py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+            <!-- Company Description -->
+            <div>
+                <a href="{% url 'home' %}" class="text-2xl font-bold text-white mb-6 block">WealthWizard</a>
+                <p class="text-gray-400">
+                    AI-powered financial management platform to track, budget, and optimize your expenses with smart insights.
+                </p>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h4 class="font-semibold mb-4">Quick Links</h4>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'home' %}" class="text-gray-400 hover:text-white">Home</a></li>
+                    <li><a href="{% url 'dashboard_page' %}" class="text-gray-400 hover:text-white">Dashboard</a></li>
+                    <li><a href="{% url 'transactions_page' %}" class="text-gray-400 hover:text-white">Transactions</a></li>
+                    <li><a href="{% url 'budget_page' %}" class="text-gray-400 hover:text-white">Budget</a></li>
+                </ul>
+            </div>
+
+            <!-- Resources -->
+            <div>
+                <h4 class="font-semibold mb-4">Resources</h4>
+                <ul class="space-y-2">
+                    <li><a href="{% url 'goals_page' %}" class="text-gray-400 hover:text-white">Goals</a></li>
+                    <li><a href="{% url 'recurring_page' %}" class="text-gray-400 hover:text-white">Recurring</a></li>
+                    <li><a href="{% url 'group_expenses_page' %}" class="text-gray-400 hover:text-white">Group Expenses</a></li>
+                    <li><a href="{% url 'notifications_page' %}" class="text-gray-400 hover:text-white">Notifications</a></li>
+                </ul>
+            </div>
+
+            <!-- Connect with Us -->
+            <div>
+                <h4 class="font-semibold mb-4">Follow Us</h4>
+                <div class="flex space-x-4">
+                    <a href="https://twitter.com/wealthwizard" target="_blank" class="text-gray-400 hover:text-white">
+                        <i class="ri-twitter-fill text-xl"></i>
+                    </a>
+                    <a href="https://linkedin.com/company/wealthwizard" target="_blank" class="text-gray-400 hover:text-white">
+                        <i class="ri-linkedin-fill text-xl"></i>
+                    </a>
+                    <a href="https://facebook.com/wealthwizard" target="_blank" class="text-gray-400 hover:text-white">
+                        <i class="ri-facebook-fill text-xl"></i>
+                    </a>
+                    <a href="https://instagram.com/wealthwizard" target="_blank" class="text-gray-400 hover:text-white">
+                        <i class="ri-instagram-fill text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright & Legal Links -->
+        <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-400">© {% now "Y" %} WealthWizard. All rights reserved.</p>
+            <div class="flex space-x-6 mt-4 md:mt-0">
+                <a href="{% url 'login_page' %}" class="text-gray-400 hover:text-white">Log in</a>
+                <a href="{% url 'signup_page' %}" class="text-gray-400 hover:text-white">Sign up</a>
+            </div>
+        </div>
+    </div>
+</footer>

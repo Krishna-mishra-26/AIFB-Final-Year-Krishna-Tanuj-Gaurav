@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Finance Tracker{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        .app-sidebar {
+            width: 16rem;
+            transition: width 0.25s ease;
+        }
+
+        .app-main {
+            margin-left: 16rem;
+            transition: margin-left 0.25s ease;
+        }
+
+        .sidebar-label {
+            transition: opacity 0.2s ease, transform 0.2s ease, max-width 0.25s ease;
+        }
+
+        body.sidebar-collapsed .app-sidebar {
+            width: 4rem;
+        }
+
+        body.sidebar-collapsed .app-main {
+            margin-left: 4rem;
+        }
+
+        body.sidebar-collapsed .sidebar-label {
+            opacity: 0;
+            transform: translateX(-6px);
+            max-width: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        body.sidebar-collapsed .sidebar-link {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        body.sidebar-collapsed .sidebar-toggle-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="min-h-screen flex">
+        <aside class="app-sidebar bg-white border-r border-gray-200 fixed inset-y-0 left-0 z-30 shadow-sm">
+            <div class="h-full flex flex-col py-4">
+                <div class="px-4 mb-4">
+                    <button id="sidebarToggle" type="button" class="w-full flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                        <span class="sidebar-label flex items-center gap-2">
+                            <i class="ri-menu-fold-line text-base"></i>
+                            <span>FinTrack</span>
+                        </span>
+                        <i class="sidebar-toggle-icon ri-arrow-left-s-line text-lg transition-transform"></i>
+                    </button>
+                </div>
+                <div class="flex-1 px-3 space-y-2 overflow-y-auto">
+                <a href="/dashboard/" title="Dashboard" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'dashboard' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <i class="ri-dashboard-line text-lg"></i>
+                    <span class="sidebar-label text-sm font-medium">Dashboard</span>
+                </a>
+                <a href="/transaction/" title="Transactions" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'transactions' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <i class="ri-layout-grid-line text-lg"></i>
+                    <span class="sidebar-label text-sm font-medium">Transactions</span>
+                </a>
+                <a href="/budget/" title="Budget" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'budget' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <i class="ri-pie-chart-line text-lg"></i>
+                    <span class="sidebar-label text-sm font-medium">Budget</span>
+                </a>
+                <a href="/goals/" title="Goals" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'goals' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <i class="ri-flag-line text-lg"></i>
+                    <span class="sidebar-label text-sm font-medium">Goals</span>
+                </a>
+                <a href="/group-expenses/" title="Group Expenses" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'group_expenses' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <i class="ri-group-line text-lg"></i>
+                    <span class="sidebar-label text-sm font-medium">Group Expenses</span>
+                </a>
+                <a href="/recurring/" title="Recurring" class="sidebar-link flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'recurring' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <i class="ri-repeat-line text-lg"></i>
+                    <span class="sidebar-label text-sm font-medium">Recurring</span>
+                </a>
+                <a href="/notifications/" title="Notifications" class="sidebar-link relative flex items-center gap-3 rounded-xl px-3 py-2 {% if active_page == 'notifications' %}bg-indigo-100 text-indigo-600{% else %}text-gray-500 hover:bg-gray-100{% endif %}">
+                    <span class="relative inline-flex items-center justify-center">
+                        <i class="ri-notification-3-line text-lg"></i>
+                        {% if unread_alerts_count and unread_alerts_count > 0 %}
+                            <span class="absolute -top-1 -right-2 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center px-1">{{ unread_alerts_count }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="sidebar-label text-sm font-medium">Notifications</span>
+                </a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-main flex-1">
+            <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl font-bold tracking-tight text-gray-900" style="font-family: Georgia, serif;">FinTrack</h1>
+                    <div class="flex flex-col leading-tight">
+                        <p class="text-xs uppercase tracking-[0.25em] text-gray-500">Welcome back</p>
+                        <p class="text-2xl font-semibold text-gray-900">Hello, {{ request.user.username|default:request.user.first_name|default:request.user.email }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative group">
+                        <a href="/notifications/" class="relative text-gray-600 hover:text-gray-900">
+                            <i class="ri-notification-3-line text-xl"></i>
+                            {% if unread_alerts_count and unread_alerts_count > 0 %}
+                                <span class="absolute -top-2 -right-2 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center px-1">{{ unread_alerts_count }}</span>
+                            {% endif %}
+                        </a>
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                            <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                                <p class="text-sm font-semibold text-gray-800">Recent Alerts</p>
+                                <a href="/notifications/" class="text-xs text-indigo-600">View all</a>
+                            </div>
+                            <div class="max-h-64 overflow-auto">
+                                {% for alert in recent_alerts %}
+                                    <div class="px-3 py-2 border-b border-gray-50 {% if not alert.is_read %}bg-indigo-50{% endif %}">
+                                        <p class="text-xs text-gray-700">{{ alert.message }}</p>
+                                        <p class="text-[10px] text-gray-500 mt-1">{{ alert.created_at|date:'d-m-Y H:i' }}</p>
+                                    </div>
+                                {% empty %}
+                                    <p class="px-3 py-4 text-xs text-gray-500">No alerts yet.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/logout/" class="text-sm text-gray-600 hover:text-gray-900">Log out</a>
+                    <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold">
+                        {{ request.user.username|default:request.user.email|first|upper }}
+                    </div>
+                </div>
+            </header>
+
+            <main class="p-6">
+                {% if messages %}
+                    <div class="mb-4 space-y-2">
+                        {% for message in messages %}
+                            <p class="text-sm {% if message.tags == 'success' %}text-green-700{% else %}text-red-700{% endif %}">{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var toggle = document.getElementById('sidebarToggle');
+            if (!toggle) return;
+
+            if (localStorage.getItem('sidebar-collapsed') === 'true') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+
+            toggle.addEventListener('click', function () {
+                document.body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem('sidebar-collapsed', document.body.classList.contains('sidebar-collapsed') ? 'true' : 'false');
+            });
+        })();
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

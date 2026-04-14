@@ -1,0 +1,200 @@
+{% extends "public/app_layout.html" %}
+
+{% block title %}Recurring Payments | Finance Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <p class="text-sm text-gray-500">Monthly Active Recurring Total</p>
+            <p class="text-2xl font-semibold mt-1">Rs {{ monthly_recurring_total|floatformat:2 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <p class="text-sm text-gray-500">Due In Next 7 Days</p>
+            <p class="text-2xl font-semibold mt-1">{{ due_this_week_count }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Status Mix</h3>
+                    <p class="text-sm text-gray-500">Active, paused, and canceled recurring payments.</p>
+                </div>
+            </div>
+            <div id="recurringStatusChart" class="h-72"></div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Upcoming Schedule</h3>
+                    <p class="text-sm text-gray-500">Days remaining for the nearest recurring payments.</p>
+                </div>
+            </div>
+            <div id="recurringDueChart" class="h-72"></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h2 class="text-2xl font-semibold text-gray-900">Add Recurring Payment</h2>
+        <p class="text-gray-500 mt-1">Create subscriptions, bills, and repeating commitments.</p>
+
+        <form method="post" class="grid md:grid-cols-5 gap-3 mt-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <input name="name" type="text" placeholder="Name (Netflix, Rent)" class="border border-gray-300 rounded-lg px-3 py-2" required>
+            <input name="amount" type="number" min="0.01" step="0.01" placeholder="Amount" class="border border-gray-300 rounded-lg px-3 py-2" required>
+            <select name="category" class="border border-gray-300 rounded-lg px-3 py-2">
+                {% for value, label in recurring_categories %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="frequency" class="border border-gray-300 rounded-lg px-3 py-2">
+                {% for value, label in recurring_frequencies %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+            <input name="next_payment_date" type="date" class="border border-gray-300 rounded-lg px-3 py-2" required>
+            <div class="md:col-span-5">
+                <button type="submit" class="bg-indigo-600 text-white rounded-lg px-4 py-2">Add recurring payment</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <h2 class="text-2xl font-semibold text-gray-900">Recurring Payments</h2>
+    <p class="text-gray-500 mt-1">Track upcoming recurring deductions.</p>
+
+    <div class="mt-5 border border-gray-200 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-700">
+                <tr>
+                    <th class="text-left px-4 py-3">Name</th>
+                    <th class="text-left px-4 py-3">Category</th>
+                    <th class="text-left px-4 py-3">Frequency</th>
+                    <th class="text-left px-4 py-3">Next date</th>
+                    <th class="text-left px-4 py-3">Amount</th>
+                    <th class="text-left px-4 py-3">Due In</th>
+                    <th class="text-left px-4 py-3">Status</th>
+                    <th class="text-left px-4 py-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in recurring_payments %}
+                    <tr class="border-t border-gray-100 {% if p.is_overdue %}bg-red-50{% elif p.is_due_soon and p.status == 'active' %}bg-yellow-50{% endif %}">
+                        <td class="px-4 py-3">{{ p.name }}</td>
+                        <td class="px-4 py-3">{{ p.category }}</td>
+                        <td class="px-4 py-3">{{ p.frequency }}</td>
+                        <td class="px-4 py-3">{{ p.next_payment_date|date:'d-m-Y' }}</td>
+                        <td class="px-4 py-3">{{ p.amount }}</td>
+                        <td class="px-4 py-3">
+                            {% if p.is_overdue %}
+                                <span class="text-red-700">Overdue</span>
+                            {% elif p.days_left == 0 %}
+                                <span class="text-yellow-700">Today</span>
+                            {% else %}
+                                {{ p.days_left }} day(s)
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <form method="post" class="flex items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_status">
+                                <input type="hidden" name="payment_id" value="{{ p.id }}">
+                                <select name="status" onchange="this.form.submit()" class="border border-gray-300 rounded px-2 py-1 text-xs capitalize">
+                                    {% for value, label in recurring_statuses %}
+                                        <option value="{{ value }}" {% if p.status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <form method="post" onsubmit="return confirm('Mark this payment as paid and move next due date?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_paid">
+                                    <input type="hidden" name="payment_id" value="{{ p.id }}">
+                                    <button type="submit" class="text-green-600 hover:text-green-700">Mark Paid</button>
+                                </form>
+                                <form method="post" onsubmit="return confirm('Delete this recurring payment?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="payment_id" value="{{ p.id }}">
+                                    <button type="submit" class="text-red-600 hover:text-red-700">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">No recurring payments yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        const statusLabels = JSON.parse('{{ recurring_status_labels_json|default:"[]"|escapejs }}');
+        const statusValues = JSON.parse('{{ recurring_status_values_json|default:"[]"|escapejs }}');
+        const paymentLabels = JSON.parse('{{ recurring_labels_json|default:"[]"|escapejs }}');
+        const dueValues = JSON.parse('{{ recurring_days_left_json|default:"[]"|escapejs }}');
+
+        const statusChartElement = document.getElementById('recurringStatusChart');
+        if (statusChartElement) {
+            const chart = echarts.init(statusChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                legend: { orient: 'vertical', left: 'left' },
+                series: [{
+                    name: 'Recurring status',
+                    type: 'pie',
+                    radius: ['45%', '70%'],
+                    data: statusLabels.map(function (label, index) {
+                        return { name: label, value: statusValues[index] || 0 };
+                    }),
+                    itemStyle: {
+                        borderRadius: 8,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }]
+            });
+            window.addEventListener('resize', function () {
+                chart.resize();
+            });
+        }
+
+        const dueChartElement = document.getElementById('recurringDueChart');
+        if (dueChartElement) {
+            const chart = echarts.init(dueChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: paymentLabels.length ? paymentLabels : ['No payments'] },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: 'Days left',
+                    type: 'bar',
+                    data: paymentLabels.length ? dueValues : [0],
+                    itemStyle: { color: '#f59e0b' }
+                }]
+            });
+            window.addEventListener('resize', function () {
+                chart.resize();
+            });
+        }
+    })();
+</script>
+{% endblock %}

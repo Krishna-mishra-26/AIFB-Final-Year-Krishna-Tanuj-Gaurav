@@ -1,0 +1,135 @@
+{% extends "public/app_layout.html" %}
+
+{% block title %}Notifications | Finance Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-semibold text-gray-900">Notifications</h2>
+            <p class="text-gray-500 mt-1">Track alerts for budgets, recurring payments, and important updates.</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="mark_all_read">
+            <button type="submit" class="bg-indigo-600 text-white rounded-lg px-4 py-2">Mark All Read</button>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Read Status</h3>
+                    <p class="text-sm text-gray-500">Overview of unread versus read notifications.</p>
+                </div>
+            </div>
+            <div id="notificationStatusChart" class="h-72"></div>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                    <p class="text-sm text-gray-500">New notifications received over the last 7 days.</p>
+                </div>
+            </div>
+            <div id="notificationActivityChart" class="h-72"></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-700">
+                <tr>
+                    <th class="text-left px-4 py-3">Status</th>
+                    <th class="text-left px-4 py-3">Message</th>
+                    <th class="text-left px-4 py-3">Created At</th>
+                    <th class="text-left px-4 py-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in alerts %}
+                    <tr class="border-t border-gray-100 {% if not item.is_read %}bg-indigo-50{% endif %}">
+                        <td class="px-4 py-3">
+                            {% if item.is_read %}
+                                <span class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Read</span>
+                            {% else %}
+                                <span class="text-xs px-2 py-1 rounded bg-indigo-100 text-indigo-700">New</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">{{ item.message }}</td>
+                        <td class="px-4 py-3">{{ item.created_at|date:'d-m-Y H:i' }}</td>
+                        <td class="px-4 py-3">
+                            {% if not item.is_read %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_read">
+                                    <input type="hidden" name="alert_id" value="{{ item.id }}">
+                                    <button type="submit" class="text-indigo-600 hover:text-indigo-700">Mark Read</button>
+                                </form>
+                            {% else %}
+                                <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-gray-500">No notifications yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        const activityLabels = JSON.parse('{{ notification_labels_json|default:"[]"|escapejs }}');
+        const activityValues = JSON.parse('{{ notification_values_json|default:"[]"|escapejs }}');
+        const statusLabels = JSON.parse('{{ notification_status_labels_json|default:"[]"|escapejs }}');
+        const statusValues = JSON.parse('{{ notification_status_values_json|default:"[]"|escapejs }}');
+
+        const statusChartElement = document.getElementById('notificationStatusChart');
+        if (statusChartElement) {
+            const chart = echarts.init(statusChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    name: 'Notification status',
+                    type: 'pie',
+                    radius: ['45%', '70%'],
+                    data: statusLabels.map(function (label, index) {
+                        return { name: label, value: statusValues[index] || 0 };
+                    })
+                }]
+            });
+            window.addEventListener('resize', function () { chart.resize(); });
+        }
+
+        const activityChartElement = document.getElementById('notificationActivityChart');
+        if (activityChartElement) {
+            const chart = echarts.init(activityChartElement);
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'category', data: activityLabels.length ? activityLabels : ['No alerts'] },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: 'Alerts',
+                    type: 'bar',
+                    data: activityLabels.length ? activityValues : [0],
+                    itemStyle: { color: '#6366f1' }
+                }]
+            });
+            window.addEventListener('resize', function () { chart.resize(); });
+        }
+    })();
+</script>
+{% endblock %}

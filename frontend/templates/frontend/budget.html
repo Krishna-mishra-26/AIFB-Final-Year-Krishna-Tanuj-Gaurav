@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget & Income Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen" onload="initializeDashboard()">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">Budget & Income Management</h1>
+            <div class="flex items-center space-x-4">
+                <button id="monthSelector" class="flex items-center px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-300">
+                    <span id="selectedMonth" class="text-lg font-medium"></span>
+                    <i class="ri-arrow-down-s-line ml-2 w-5 h-5"></i>
+                </button>
+                <button onclick="exportData()" class="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-300">Export</button>
+                <button onclick="toggleDarkMode()" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-300">Dark Mode</button>
+            </div>
+        </header>
+        
+        <div class="grid grid-cols-12 gap-6">
+            <!-- Income Section -->
+            <div class="col-span-12 lg:col-span-4">
+                <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Total Income</h2>
+                    <div id="totalIncome" class="text-center text-3xl font-bold text-gray-900">$0</div>
+                    <p class="text-center text-sm text-gray-500">Monthly Income</p>
+                    <div class="mt-6">
+                        <h3 class="text-md font-semibold text-gray-900">Income Sources</h3>
+                        <ul id="incomeList" class="mt-2 space-y-2"></ul>
+                    </div>
+                    <button onclick="addIncome()" class="w-full mt-4 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300">Add Income</button>
+                </div>
+            </div>
+
+            <!-- Budget Section with AI Insights -->
+            <div class="col-span-12 lg:col-span-8">
+                <div class="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Total Budget</h2>
+                    <div id="totalBudget" class="text-center text-3xl font-bold text-gray-900">$0</div>
+                    <p class="text-center text-sm text-gray-500">Planned Expenses</p>
+                    <div id="budgetWarnings" class="mt-4 text-red-600"></div>
+                    <div class="mt-6">
+                        <h3 class="text-md font-semibold text-gray-900">Expense Breakdown</h3>
+                        <ul id="expenseList" class="mt-2 space-y-2"></ul>
+                    </div>
+                    <button onclick="addBudget()" class="w-full mt-4 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition duration-300">Set Budget</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spending Analysis Chart -->
+        <div class="bg-white rounded-lg p-6 mt-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Spending Analysis</h2>
+            <div id="spendingChart" class="h-80"></div>
+        </div>
+    </div>
+
+    <!-- AI Budget Reallocation Confirmation Modal -->
+    <div id="aiReallocateModal" class="hidden fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">AI Budget Reallocation</h3>
+            <p id="aiSuggestionText" class="text-gray-700 mb-4"></p>
+            <div class="flex justify-end space-x-2">
+                <button onclick="confirmReallocation(true)" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300">Confirm</button>
+                <button onclick="confirmReallocation(false)" class="px-4 py-2 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 transition duration-300">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script src="budget.js"></script>
+
+</body>
+</html>

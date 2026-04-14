@@ -1,0 +1,58 @@
+{% load static %}
+<section class="pt-32 pb-24">
+    <div class="max-w-7xl mx-auto px-4">
+        <h1 class="text-5xl font-bold">AI-Powered Finance Management Made Simple</h1>
+        <p class="text-xl text-gray-600">Track, budget, and predict your finances with AI.</p>
+        <div class="mt-6">
+            <a href="{% url 'signup_page' %}" class="px-6 py-3 bg-primary text-white rounded">Get Started Free</a>
+            <button id="watch-demo" class="px-6 py-3 border">Watch Demo</button>
+        </div>
+    </div>
+</section>
+<div class="grid grid-cols-3 gap-4 mt-8">
+    <div class="text-center">
+        <div class="text-3xl font-bold text-primary mb-2" id="active-users">{{ active_users }}</div>
+        <div class="text-gray-600">Active Users</div>
+    </div>
+    <div class="text-center">
+        <div class="text-3xl font-bold text-primary mb-2" id="accuracy-rate">{{ accuracy_rate }}%</div>
+        <div class="text-gray-600">Accuracy Rate</div>
+    </div>
+    <div class="text-center">
+        <div class="text-3xl font-bold text-primary mb-2">{{ support_availability }}</div>
+        <div class="text-gray-600">Support</div>
+    </div>
+</div>
+
+<div class="bg-gradient-to-br from-secondary/5 to-secondary/10 p-8 rounded-xl flex items-center">
+    <div class="w-full">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Monthly Savings</h3>
+            <i class="ri-arrow-right-up-line text-green-500"></i>
+        </div>
+        <div class="text-3xl font-bold text-primary mb-2" id="monthly-savings">${{ monthly_savings }}</div>
+        <div class="text-sm text-gray-600">+<span id="savings-growth">{{ savings_growth }}</span>% from last month</div>
+    </div>
+</div>
+
+<div class="bg-gradient-to-br from-primary/5 to-primary/10 p-8 rounded-xl relative overflow-hidden">
+    <div class="relative z-10">
+        <h3 class="text-lg font-semibold mb-2">AI Investment Advisor</h3>
+        <p class="text-sm text-gray-600 mb-4">Get personalized investment recommendations</p>
+        <div class="flex items-center space-x-4">
+            <div class="flex -space-x-2">
+                <img src="{% static 'images/user1.jpg' %}" alt="User" class="w-8 h-8 rounded-full border-2 border-white">
+                <img src="{% static 'images/user2.jpg' %}" alt="User" class="w-8 h-8 rounded-full border-2 border-white">
+                <img src="{% static 'images/user3.jpg' %}" alt="User" class="w-8 h-8 rounded-full border-2 border-white">
+            </div>
+            <span class="text-sm text-gray-600">+<span id="investment-users">{{ investment_users }}</span> users this week</span>
+        </div>
+        <div class="mt-4 flex items-center space-x-2">
+            <div class="text-green-500 font-semibold">+<span id="average-roi">{{ average_roi }}</span>%</div>
+            <div class="h-1 w-32 bg-gray-200 rounded-full overflow-hidden">
+                <div class="h-full w-3/4 bg-green-500 rounded-full"></div>
+            </div>
+            <span class="text-sm text-gray-600">Average ROI</span>
+        </div>
+    </div>
+</div>

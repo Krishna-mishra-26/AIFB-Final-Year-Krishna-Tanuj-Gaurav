@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign up | AI Finance Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <main class="max-w-md mx-auto px-6 py-12">
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
+            <h1 class="text-2xl font-bold text-gray-900">Create your account</h1>
+            <p class="text-gray-600 mt-2">Start tracking your finances in minutes.</p>
+
+            {% if messages %}
+                <div class="mt-4 space-y-2">
+                    {% for message in messages %}
+                        <p class="text-sm {% if message.tags == 'success' %}text-green-700{% else %}text-red-700{% endif %}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" class="mt-6 space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Full name</label>
+                    <input name="full_name" type="text" required class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input name="email" type="email" required class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone number</label>
+                    <input name="phone_number" type="text" class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input name="password" type="password" required class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Confirm password</label>
+                    <input name="confirm_password" type="password" required class="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+
+                <button type="submit" class="w-full bg-indigo-600 text-white rounded-lg py-2 font-medium">Sign up</button>
+            </form>
+
+            <p class="text-sm text-gray-600 mt-5">Already have an account? <a href="/login/" class="text-indigo-700 font-medium">Log in</a></p>
+        </div>
+    </main>
+</body>
+</html>

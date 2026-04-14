@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200">
+        <div class="flex items-center justify-between px-8 py-4">
+            <!-- Welcome Message -->
+            <div>
+                <h2 id="welcomeMessage" class="text-2xl font-semibold text-gray-900">Welcome back, User</h2>
+                <p id="currentDate" class="text-sm text-gray-500"></p>
+            </div>
+
+            <!-- Right Section: Notifications & User Avatar -->
+            <div class="flex items-center space-x-4">
+                <!-- Notification Icon -->
+                <button id="notificationBtn" class="relative p-2 text-gray-600 hover:text-gray-900">
+                    <div class="w-6 h-6 flex items-center justify-center">
+                        <i class="ri-notification-line"></i>
+                    </div>
+                    <span id="notificationBadge" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                </button>
+
+                <!-- Notification Dropdown -->
+                <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg">
+                    <div id="notificationList" class="p-4"></div>
+                </div>
+
+                <!-- User Profile Dropdown -->
+                <div class="relative">
+                    <button id="userDropdownBtn" class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                        <img id="userAvatar" src="https://via.placeholder.com/40" class="w-8 h-8 rounded-full" alt="User">
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg">
+                        <a href="{% url 'dashboard_page' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="ri-user-line mr-2"></i> Profile
+                        </a>
+                        <a href="{% url 'logout_page' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="ri-logout-box-line mr-2"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-4">
+        <!-- Financial Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Balance -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Total Balance</h3>
+                    <div class="w-8 h-8 bg-primary bg-opacity-10 rounded-full flex items-center justify-center">
+                        <i class="ri-wallet-line text-primary"></i>
+                    </div>
+                </div>
+                <p id="totalBalance" class="text-2xl font-semibold text-gray-900">Loading...</p>
+                <p id="balanceChange" class="text-sm text-green-600 mt-2">
+                    <i class="ri-arrow-up-line"></i>
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Monthly Income -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Monthly Income</h3>
+                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <i class="ri-arrow-up-circle-line text-green-600"></i>
+                    </div>
+                </div>
+                <p id="monthlyIncome" class="text-2xl font-semibold text-gray-900">Loading...</p>
+                <p id="incomeChange" class="text-sm text-green-600 mt-2">
+                    <i class="ri-arrow-up-line"></i>
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Monthly Expenses -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Monthly Expenses</h3>
+                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="ri-arrow-down-circle-line text-red-600"></i>
+                    </div>
+                </div>
+                <p id="monthlyExpenses" class="text-2xl font-semibold text-gray-900">Loading...</p>
+                <p id="expenseChange" class="text-sm text-red-600 mt-2">
+                    <i class="ri-arrow-down-line"></i>
+                    Loading...
+                </p>
+            </div>
+
+            <!-- Savings Progress -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Savings Progress</h3>
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="ri-safe-line text-blue-600"></i>
+                    </div>
+                </div>
+                <p id="savingsProgress" class="text-2xl font-semibold text-gray-900">Loading...</p>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                    <div id="savingsProgressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="voiceEntryBtn" class="flex flex-col items-center justify-center p-4 bg-gray-100 rounded-lg">
+                    <i class="ri-mic-line text-3xl text-gray-600 mb-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Voice Entry</span>
+                </button>
+                <a href="{% url 'budget_page' %}" class="flex flex-col items-center justify-center p-4 bg-gray-100 rounded-lg">
+                    <i class="ri-pie-chart-line text-3xl text-gray-600 mb-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Set Budget</span>
+                </a>
+                <a href="{% url 'transaction_page' %}" class="flex flex-col items-center justify-center p-4 bg-primary bg-opacity-10 rounded-lg">
+                    <i class="ri-add-circle-line text-3xl text-primary mb-2"></i>
+                    <span class="text-sm font-medium text-primary">Add Transaction</span>
+                </a>
+                <a href="{% url 'dashboard_page' %}" class="flex flex-col items-center justify-center p-4 bg-gray-100 rounded-lg">
+                    <i class="ri-line-chart-line text-3xl text-gray-600 mb-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Analyze Spending</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Spending Analysis -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Spending Analysis</h3>
+            <div id="spendingChart" class="h-80"></div>
+            <div class="grid grid-cols-2 gap-6 mt-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-md font-semibold text-gray-900 mb-4">Expense Breakdown by Category</h3>
+                    <div id="expensePieChart" class="h-60"></div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-md font-semibold text-gray-900 mb-4">Monthly Expenses Trend</h3>
+                    <div id="expenseBarChart" class="h-60"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Recent Transactions</h3>
+            <div id="transactionList" class="space-y-4"></div>
+        </div>
+
+        <!-- Upcoming Bills -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Upcoming Bills</h3>
+            <div id="billsList" class="space-y-4"></div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">AI Insights</h3>
+            <div id="aiInsightsBox" class="p-4 bg-blue-50 rounded-lg"></div>
+        </div>
+
+        <!-- Savings Goals Tracker -->
+        <div class="p-6 bg-white shadow-lg rounded-lg">
+            <h3 class="font-semibold text-gray-800 mb-4">Savings Goals</h3>
+            <div id="savingsGoals" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- Transaction Confirmation Modal -->
+    <div id="transactionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirm Transaction</h3>
+            <label class="block text-sm text-gray-700 mb-1">Amount</label>
+            <input type="number" id="editAmount" class="w-full p-2 border rounded mb-3" />
+            
+            <label class="block text-sm text-gray-700 mb-1">Category</label>
+            <input type="text" id="editCategory" class="w-full p-2 border rounded mb-3" />
+
+            <label class="block text-sm text-gray-700 mb-1">Transaction Type</label>
+            <select id="editType" class="w-full p-2 border rounded mb-3">
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+            </select>
+
+            <div class="flex justify-end space-x-3">
+                <button id="cancelTransaction" class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                <button id="saveTransaction" class="px-4 py-2 bg-primary text-white rounded">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

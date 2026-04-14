@@ -1,0 +1,121 @@
+{% extends "public/app_layout.html" %}
+
+{% block title %}Budget | Finance Tracker{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-2xl font-semibold text-gray-900">Budget Planner</h2>
+        <p class="text-gray-500 mt-1">Set monthly limits by category.</p>
+
+        <form method="post" class="grid md:grid-cols-3 gap-3 mt-4">
+            {% csrf_token %}
+            <input name="category" type="text" placeholder="Category" required class="border border-gray-300 rounded-lg px-3 py-2">
+            <input name="monthly_limit" type="number" step="0.01" placeholder="Monthly limit" required class="border border-gray-300 rounded-lg px-3 py-2">
+            <button type="submit" class="bg-indigo-600 text-white rounded-lg px-4 py-2">Save budget</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Budget Usage Overview</h3>
+                <p class="text-sm text-gray-500">Compare monthly limits against current spend.</p>
+            </div>
+        </div>
+        <div id="budgetChart" class="h-80"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-700">
+                <tr>
+                    <th class="text-left px-4 py-3">Category</th>
+                    <th class="text-left px-4 py-3">Monthly limit</th>
+                    <th class="text-left px-4 py-3">Spent (this month)</th>
+                    <th class="text-left px-4 py-3">Remaining</th>
+                    <th class="text-left px-4 py-3">Usage</th>
+                    <th class="text-left px-4 py-3">Updated</th>
+                    <th class="text-left px-4 py-3">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in budgets %}
+                    <tr class="border-t border-gray-100">
+                        <td class="px-4 py-3">{{ b.category }}</td>
+                        <td class="px-4 py-3">{{ b.monthly_limit }}</td>
+                        <td class="px-4 py-3">{{ b.spent|floatformat:2 }}</td>
+                        <td class="px-4 py-3 {% if b.remaining < 0 %}text-red-600{% else %}text-green-700{% endif %}">
+                            {{ b.remaining|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 min-w-44">
+                            <progress value="{{ b.usage_percent }}" max="100" class="w-full h-2"></progress>
+                            <p class="text-xs text-gray-500 mt-1">{{ b.usage_percent }}%</p>
+                        </td>
+                        <td class="px-4 py-3">{{ b.created_at|date:'Y-m-d H:i' }}</td>
+                        <td class="px-4 py-3">
+                            <form method="post" onsubmit="return confirm('Delete this budget?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="budget_id" value="{{ b.id }}">
+                                <button type="submit" class="text-red-600 hover:text-red-700">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">No budget categories yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        const labels = JSON.parse('{{ budget_labels_json|default:"[]"|escapejs }}');
+        const limits = JSON.parse('{{ budget_limits_json|default:"[]"|escapejs }}');
+        const spent = JSON.parse('{{ budget_spent_json|default:"[]"|escapejs }}');
+
+        const chartElement = document.getElementById('budgetChart');
+        if (!chartElement) {
+            return;
+        }
+
+        const chart = echarts.init(chartElement);
+        const hasData = labels.length > 0;
+        chart.setOption({
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            legend: { data: ['Limit', 'Spent'] },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'value' },
+            yAxis: { type: 'category', data: hasData ? labels : ['No budgets yet'] },
+            series: [
+                {
+                    name: 'Limit',
+                    type: 'bar',
+                    data: hasData ? limits : [0],
+                    itemStyle: { color: '#6366f1' }
+                },
+                {
+                    name: 'Spent',
+                    type: 'bar',
+                    data: hasData ? spent : [0],
+                    itemStyle: { color: '#ef4444' }
+                }
+            ]
+        });
+
+        window.addEventListener('resize', function () {
+            chart.resize();
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+<header class="fixed w-full bg-white shadow-md z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+            <!-- Website Name -->
+            <a href="{% url 'home' %}" class="text-2xl font-bold text-primary">WealthWizard</a>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex space-x-6">
+                <a href="{% url 'home' %}" class="text-gray-600 hover:text-primary">Home</a>
+                <a href="{% url 'dashboard_page' %}" class="text-gray-600 hover:text-primary">Dashboard</a>
+                <a href="{% url 'transaction_page' %}" class="text-gray-600 hover:text-primary">Transactions</a>
+                <a href="{% url 'budget_page' %}" class="text-gray-600 hover:text-primary">Budget</a>
+                <a href="{% url 'goals_page' %}" class="text-gray-600 hover:text-primary">Goals</a>
+            </nav>
+
+            <!-- Auth Buttons -->
+            <div class="flex space-x-4">
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'dashboard_page' %}" class="px-4 py-2 bg-secondary text-white rounded">Dashboard</a>
+                    <a href="{% url 'logout_page' %}" class="px-4 py-2 border border-gray-300 rounded">Logout</a>
+                {% else %}
+                    <a href="{% url 'login_page' %}" class="px-4 py-2 border border-gray-300 rounded">Login</a>
+                    <a href="{% url 'signup_page' %}" class="px-4 py-2 bg-primary text-white rounded">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</header>
